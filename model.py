@@ -21,7 +21,10 @@ def attention_3d_block(inputs):
 
 
 def decoder(inputs, name):
-    decode = Dense(dim)(inputs)
+    attention = attention_3d_block(inputs)
+    attention = Flatten()(attention)
+    attention = Dense(dim * 2)(attention)
+    decode = Dense(dim)(attention)
     decode = Dropout(0.3)(decode)
     decode = Reshape((4, 4, 16))(decode)
     decode = UpSampling2D((2, 2))(decode)
@@ -43,9 +46,7 @@ dim = 4 * 4 * 16
 
 input_demand = Input(shape=(None, size, size, 1))
 demand_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(input_demand)
-demand_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(demand_cnn)
 demand_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(demand_cnn)
-demand_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(demand_cnn)
 demand_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(demand_cnn)
 demand_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(demand_cnn)
 demand_cnn = TimeDistributed(Dropout(0.3))(demand_cnn)
@@ -54,9 +55,7 @@ demand_cnn = Reshape((timestep, dim))(demand_cnn)
 
 input_supply = Input(shape=(None, size, size, 1))
 supply_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(input_supply)
-supply_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(supply_cnn)
 supply_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(supply_cnn)
-supply_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(supply_cnn)
 supply_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(supply_cnn)
 supply_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(supply_cnn)
 supply_cnn = TimeDistributed(Dropout(0.3))(supply_cnn)
@@ -66,11 +65,6 @@ supply_cnn = Reshape((timestep, dim))(supply_cnn)
 combine_demand_supply = concatenate([demand_cnn, supply_cnn])
 
 attention = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
-attention = attention_3d_block(attention)
-attention = Flatten()(attention)
-attention = Dense(dim * 2)(attention)
-
-
 
 
 demand_decoder = decoder(attention, 'demand')
@@ -91,10 +85,10 @@ history = model.fit([demandX_train, supplyX_train], [demandY_train, supplyY_trai
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test], [demandY_test, supplyY_test]))
 
-demand_rmse = history.history['demand_rmse']
-val_demand_rmse = history.history['val_demand_rmse']
-supply_rmse = history.history['supply_rmse']
-val_supply_rmse = history.history['val_supply_rmse']
+demand_rmse = history.history['demand_output_rmse']
+val_demand_rmse = history.history['val_demand_output_rmse']
+supply_rmse = history.history['supply_output_rmse']
+val_supply_rmse = history.history['val_supply_output_rmse']
 
 loss = history.history['loss']
 val_loss = history.history['val_loss']
