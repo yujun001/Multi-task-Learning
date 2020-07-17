@@ -20,6 +20,17 @@ def attention_3d_block(inputs):
     return output_attention_mul
 
 
+def decoder(inputs, name):
+    decode = Dense(dim)(inputs)
+    decode = Dropout(0.3)(decode)
+    decode = Reshape((4, 4, 16))(decode)
+    decode = UpSampling2D((2, 2))(decode)
+    decode = Conv2D(8, (3, 3), padding='same')(decode)
+    decode = UpSampling2D((2, 2))(decode)
+    decoder_output = Conv2D(1, (3, 3), padding='same', name=name+'_output')(decode)
+    return decoder_output
+
+
 [demandX_train, supplyX_train] = np.load('train.npz')['X']
 [demandY_train, supplyY_train] = np.load('train.npz')['Y']
 [demandX_test, supplyX_test] = np.load('test.npz')['X']
@@ -59,23 +70,14 @@ attention = attention_3d_block(attention)
 attention = Flatten()(attention)
 attention = Dense(dim * 2)(attention)
 
-output_demand = Dense(dim)(attention)
-output_demand = Dropout(0.3)(output_demand)
-output_demand = Reshape((4, 4, 16))(output_demand)
-output_demand = UpSampling2D((2, 2))(output_demand)
-output_demand = Conv2D(8, (3, 3), padding='same')(output_demand)
-output_demand = UpSampling2D((2, 2))(output_demand)
-output_demand = Conv2D(1, (3, 3), padding='same', name='demand')(output_demand)
 
-output_supply = Dense(dim)(attention)
-output_supply = Dropout(0.3)(output_supply)
-output_supply = Reshape((4, 4, 16))(output_supply)
-output_supply = UpSampling2D((2, 2))(output_supply)
-output_supply = Conv2D(8, (3, 3), padding='same')(output_supply)
-output_supply = UpSampling2D((2, 2))(output_supply)
-output_supply = Conv2D(1, (3, 3), padding='same', name='supply')(output_supply)
 
-model = Model(inputs=[input_demand, input_supply], outputs=[output_demand, output_supply])
+
+demand_decoder = decoder(attention, 'demand')
+supply_decoder = decoder(attention, 'supply')
+
+
+model = Model(inputs=[input_demand, input_supply], outputs=[demand_decoder, supply_decoder])
 model.compile(loss='mse', optimizer='adadelta', metrics=[rmse])
 
 print(model.summary())
