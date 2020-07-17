@@ -5,7 +5,7 @@ from keras.layers import Permute, Dense, TimeDistributed, Conv2D, MaxPooling2D, 
 from keras import Input, Model
 from keras import backend as K
 import matplotlib.pyplot as plt
-from keras.utils import plot_model
+#from keras.utils import plot_model
 
 
 def rmse(y_true, y_pred):
@@ -33,6 +33,16 @@ def decoder(inputs, name):
     decoder_output = Conv2D(1, (3, 3), padding='same', name=name+'_output')(decode)
     return decoder_output
 
+def encoder(inputs):
+    encode = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(inputs)
+    encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
+    encode = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(encode)
+    encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
+    encode = TimeDistributed(Dropout(0.3))(encode)
+    encode = TimeDistributed(Flatten())(encode)
+    encode = Reshape((timestep, dim))(encode)
+    return encode
+
 
 [demandX_train, supplyX_train] = np.load('train.npz')['X']
 [demandY_train, supplyY_train] = np.load('train.npz')['Y']
@@ -45,30 +55,17 @@ size = 16
 dim = 4 * 4 * 16
 
 input_demand = Input(shape=(None, size, size, 1))
-demand_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(input_demand)
-demand_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(demand_cnn)
-demand_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(demand_cnn)
-demand_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(demand_cnn)
-demand_cnn = TimeDistributed(Dropout(0.3))(demand_cnn)
-demand_cnn = TimeDistributed(Flatten())(demand_cnn)
-demand_cnn = Reshape((timestep, dim))(demand_cnn)
+demand_encoder = encoder(input_demand)
 
 input_supply = Input(shape=(None, size, size, 1))
-supply_cnn = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(input_supply)
-supply_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(supply_cnn)
-supply_cnn = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(supply_cnn)
-supply_cnn = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(supply_cnn)
-supply_cnn = TimeDistributed(Dropout(0.3))(supply_cnn)
-supply_cnn = TimeDistributed(Flatten())(supply_cnn)
-supply_cnn = Reshape((timestep, dim))(supply_cnn)
+supply_encoder = encoder(input_supply)
 
-combine_demand_supply = concatenate([demand_cnn, supply_cnn])
-
-attention = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
+combine_demand_supply = concatenate([demand_encoder, supply_encoder])
+lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 
-demand_decoder = decoder(attention, 'demand')
-supply_decoder = decoder(attention, 'supply')
+demand_decoder = decoder(lstm, 'demand')
+supply_decoder = decoder(lstm, 'supply')
 
 
 model = Model(inputs=[input_demand, input_supply], outputs=[demand_decoder, supply_decoder])
@@ -77,11 +74,11 @@ model.compile(loss='mse', optimizer='adadelta', metrics=[rmse])
 print(model.summary())
 
 
-plot_model(model, to_file='model.png')
+#plot_model(model, to_file='model.png')
 
 history = model.fit([demandX_train, supplyX_train], [demandY_train, supplyY_train],
-                    batch_size=16,
-                    epochs=70,
+                    batch_size=8,
+                    epochs=150,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test], [demandY_test, supplyY_test]))
 
