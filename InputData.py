@@ -25,27 +25,34 @@ def InputDataReshape(data, factor=0):
     return np.concatenate([weekX, dayX, quarterX], axis=1), Y
 
 
-data = np.load('CNN_input_allDIDI.npz')['arr_0']
+data = np.load('CNN_DIDI_withPOI.npz')['arr_0']
 demand = data[:, :, :, :1]
-supply = data[:, :, :, 1:]
+supply = data[:, :, :, 1:2]
 
 demandX, demandY = InputDataReshape(demand)
 supplyX, supplyY = InputDataReshape(supply)
+
+factor = np.load('factor.npy')[96*7:]
+auxiliary = np.load('auxiliary.npy')[96*7:]
 
 test = 96 * 7
 size = 16
 
 
-demandX_train, demandY_train, supplyX_train, supplyY_train = \
-    demandX[:-test], demandY[:-test], supplyX[:-test], supplyY[:-test]
+demandX_train, demandY_train, supplyX_train, supplyY_train, factor_train, auxiliary_train = \
+    demandX[:-test], demandY[:-test], supplyX[:-test], supplyY[:-test], factor[:-test], auxiliary[:-test]
 
 np.savez('train',
          X=[demandX_train, supplyX_train],
-         Y=[demandY_train, supplyY_train])
+         Y=[demandY_train, supplyY_train],
+         factor=factor_train,
+         auxiliary=auxiliary_train)
 
-demandX_test, demandY_test, supplyX_test, supplyY_test = \
-    demandX[-test:], demandY[-test:], supplyX[-test:], supplyY[-test:]
+demandX_test, demandY_test, supplyX_test, supplyY_test, factor_test, auxiliary_test = \
+    demandX[-test:], demandY[-test:], supplyX[-test:], supplyY[-test:], factor[-test:], auxiliary[-test:]
 
 np.savez('test',
          X=[demandX_test, supplyX_test],
-         Y=[demandY_test, supplyY_test])
+         Y=[demandY_test, supplyY_test],
+         factor=factor_test,
+         auxiliary=auxiliary_test)
