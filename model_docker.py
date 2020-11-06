@@ -7,7 +7,7 @@ from tensorflow.keras import backend as K
 import matplotlib.pyplot as plt
 
 
-from keras.utils import plot_model
+# from keras.utils import plot_model
 
 
 def rmse(y_true, y_pred):
@@ -107,19 +107,18 @@ aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoenc
 
 aux_dim = 32*4*4
 aux = Reshape((aux_dim,))(aux_encode)
-"""
+
 aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
 aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
-"""
 aux_supply = Dense(aux_dim)(aux)
 aux_supply = Dense(dim)(aux_supply)
 aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
-"""
+
 demand_attention = attention_3d_block(lstm)
 demand_attention = Flatten()(demand_attention)
 demand_attention = Dense(dim * 2)(demand_attention)
@@ -127,7 +126,6 @@ demand_combine = concatenate([demand_attention, aux_demand])
 demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
-"""
 supply_attention = attention_3d_block(lstm)
 supply_attention = Flatten()(supply_attention)
 supply_attention = Dense(dim * 2)(supply_attention)
@@ -136,25 +134,25 @@ supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
 
 model = Model(inputs=[input_demand, input_supply, input_aux],
-              outputs=[supply_predict, aux_decode, aux_supply_predict, demand_decoder, supply_decoder])
+              outputs=[demand_predict, supply_predict, aux_decode, aux_demand_predict, aux_supply_predict, demand_decoder, supply_decoder])
 model.compile(loss='mse',
               optimizer='adam',
               metrics=[rmse],
-              loss_weights=[1, 2, 2, 0.25, 0.25])
+              loss_weights=[1, 1, 2, 2, 2, 0.25, 0.25])
 
 print(model.summary())
-#plot_model(model, to_file='model.png')
+# plot_model(model, to_file='model.png')
 
 history = model.fit([demandX_train, supplyX_train, factor_train],
-                    [supplyY_train, factor_train, supply_aux_train, demandX_train, supplyX_train],
+                    [demandY_train, supplyY_train, factor_train, demand_aux_train, supply_aux_train, demandX_train, supplyX_train],
                     batch_size=8,
-                    epochs=100,
-                    verbose=0,
+                    epochs=150,
+                    verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
-                                     [supplyY_test, factor_test, supply_aux_test, demandX_test, supplyX_test]))
+                                     [demandY_test, supplyY_test, factor_test, demand_aux_test, supply_aux_test, demandX_test, supplyX_test]))
 
-#demand_rmse = history.history['demand_output_rmse']
-#val_demand_rmse = history.history['val_demand_output_rmse']
+demand_rmse = history.history['demand_output_rmse']
+val_demand_rmse = history.history['val_demand_output_rmse']
 supply_rmse = history.history['supply_output_rmse']
 val_supply_rmse = history.history['val_supply_output_rmse']
 
@@ -162,8 +160,9 @@ loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs = range(1, len(loss) + 1)
 
-#plt.plot(epochs, demand_rmse, 'bo', label='Demand Training RMSE')
-#plt.plot(epochs, val_demand_rmse, 'b', label='Demand Validation RMSE')
+
+plt.plot(epochs, demand_rmse, 'bo', label='Demand Training RMSE')
+plt.plot(epochs, val_demand_rmse, 'b', label='Demand Validation RMSE')
 plt.plot(epochs, supply_rmse, 'ro', label='Supply Training RMSE')
 plt.plot(epochs, val_supply_rmse, 'r', label='Supply Validation RMSE')
 plt.title('Training and validation RMSE')
@@ -179,3 +178,4 @@ plt.plot(epochs, val_loss, 'b', label='Validation loss')
 plt.title('Training and validation loss')
 plt.legend()
 plt.show()
+plt.savefig("test.png")
