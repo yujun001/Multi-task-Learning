@@ -24,18 +24,18 @@ def attention_3d_block(inputs):
 
 def main_task(inputs, name):
     decode = Dense(dim)(inputs)
-    decode = Reshape((4, 4, 8))(decode)
+    decode = Reshape((4, 4, 16))(decode)
     decode = UpSampling2D((2, 2))(decode)
-    decode = Conv2D(4, (3, 3), padding='same')(decode)
+    decode = Conv2D(8, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
     decoder_output = Conv2D(1, (3, 3), padding='same', name=name + '_output')(decode)
     return decoder_output
 
 
 def encoder(inputs):
-    encode = TimeDistributed(Conv2D(4, (3, 3), padding='same', activation='relu'))(inputs)
+    encode = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(inputs)
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
-    encode = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(encode)
+    encode = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(encode)
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
     encode = Dropout(0.3)(encode)
     return encode
@@ -64,7 +64,7 @@ supply_aux_test = np.load('test.npz')['auxiliary'][:, :, :, 1:]
 
 timestep = 3
 size = 16
-dim = 4 * 4 * 8
+dim = 4 * 4 * 16
 
 input_demand = Input(shape=(None, size, size, 1))
 demand_encoder = encoder(input_demand)
