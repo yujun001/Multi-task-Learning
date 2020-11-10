@@ -24,25 +24,25 @@ def attention_3d_block(inputs):
 
 def main_task(inputs, name):
     decode = Dense(dim)(inputs)
-    decode = Reshape((4, 4, 16))(decode)
+    decode = Reshape((4, 4, 8))(decode)
     decode = UpSampling2D((2, 2))(decode)
-    decode = Conv2D(8, (3, 3), padding='same')(decode)
+    decode = Conv2D(4, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
     decoder_output = Conv2D(1, (3, 3), padding='same', name=name + '_output')(decode)
     return decoder_output
 
 
 def encoder(inputs):
-    encode = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(inputs)
+    encode = TimeDistributed(Conv2D(4, (3, 3), padding='same', activation='relu'))(inputs)
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
-    encode = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(encode)
+    encode = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(encode)
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
     encode = Dropout(0.3)(encode)
     return encode
 
 
 def aux_task(inputs, name):
-    aux_predict = Reshape((4, 4, 16))(inputs)
+    aux_predict = Reshape((4, 4, 32))(inputs)
     aux_predict = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_predict)
     aux_predict = UpSampling2D((2, 2))(aux_predict)
     aux_predict = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_predict)
@@ -64,7 +64,7 @@ supply_aux_test = np.load('test.npz')['auxiliary'][:, :, :, 1:]
 
 timestep = 3
 size = 16
-dim = 4 * 4 * 16
+dim = 4 * 4 * 8
 
 input_demand = Input(shape=(None, size, size, 1))
 demand_encoder = encoder(input_demand)
@@ -77,7 +77,6 @@ supply_encoder = encoder(input_supply)
 supply_reshape = TimeDistributed(Dropout(0.3))(supply_encoder)
 supply_reshape = TimeDistributed(Flatten())(supply_reshape)
 supply_reshape = Reshape((timestep, dim))(supply_reshape)
-
 
 
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
@@ -99,12 +98,12 @@ aux_dim = 32*4*4
 aux = Reshape((aux_dim,))(aux_encode)
 
 aux_demand = Dense(aux_dim)(aux)
-aux_demand = Dense(dim)(aux_demand)
+aux_demand = Dense(aux_dim)(aux_demand)
 aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
 aux_supply = Dense(aux_dim)(aux)
-aux_supply = Dense(dim)(aux_supply)
+aux_supply = Dense(aux_dim)(aux_supply)
 aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
