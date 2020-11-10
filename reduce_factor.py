@@ -82,7 +82,7 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 
 
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
-lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
+lstm = LSTM(int(dim*0.5), return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 input_aux = Input(shape=(size, size, 13))
 aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
@@ -101,12 +101,10 @@ aux = Reshape((aux_dim,))(aux_encode)
 
 aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
-aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
 aux_supply = Dense(aux_dim)(aux)
 aux_supply = Dense(dim)(aux_supply)
-aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
 
