@@ -42,10 +42,10 @@ def encoder(inputs):
 
 
 def aux_task(inputs, name):
-    aux_predict = Reshape((4, 4, 32))(inputs)
-    aux_predict = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_predict)
-    aux_predict = UpSampling2D((2, 2))(aux_predict)
+    aux_predict = Reshape((4, 4, 16))(inputs)
     aux_predict = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_predict)
+    aux_predict = UpSampling2D((2, 2))(aux_predict)
+    aux_predict = Conv2D(4, (3, 3), padding='same', activation='relu')(aux_predict)
     aux_predict = UpSampling2D((2, 2))(aux_predict)
     aux_predict = Conv2D(1, (3, 3), padding='same', activation='relu', name=name+'_auxiliary')(aux_predict)
     return aux_predict
@@ -79,31 +79,32 @@ supply_reshape = TimeDistributed(Flatten())(supply_reshape)
 supply_reshape = Reshape((timestep, dim))(supply_reshape)
 
 
+
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
 lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 input_aux = Input(shape=(size, size, 13))
-aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(input_aux)
+aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
-aux_encode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
+aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
-aux_decode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
+aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_decode)
+aux_decode = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
-aux_dim = 32*4*4
+aux_dim = 16*4*4
 aux = Reshape((aux_dim,))(aux_encode)
 
 aux_demand = Dense(aux_dim)(aux)
-aux_demand = Dense(aux_dim)(aux_demand)
+aux_demand = Dense(dim)(aux_demand)
 aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
 aux_supply = Dense(aux_dim)(aux)
-aux_supply = Dense(aux_dim)(aux_supply)
+aux_supply = Dense(dim)(aux_supply)
 aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
