@@ -25,9 +25,9 @@ def attention_3d_block(inputs):
 def main_task(inputs, name):
     decode = Dense(dim)(inputs)
     decode = Reshape((4, 4, 16))(decode)
-    decode = Conv2D(8, (3, 3), padding='same')(decode)
+    decode = Conv2D(16, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
-    decode = Conv2D(4, (3, 3), padding='same')(decode)
+    decode = Conv2D(8, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
     decoder_output = Conv2D(1, (3, 3), padding='same', name=name + '_output')(decode)
     return decoder_output
