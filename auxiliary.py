@@ -14,10 +14,8 @@ def classify(ori):
                     classified[i][j][k][0] = 0
                 elif ori[i][j][k][0] < 2*avg:
                     classified[i][j][k][0] = 1
-                elif ori[i][j][k][0] < 3*avg:
-                    classified[i][j][k][0] = 2
                 else:
-                    classified[i][j][k][0] = 3
+                    classified[i][j][k][0] = 2
     return classified
 
 demand_aux = classify(demand)

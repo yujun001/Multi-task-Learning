@@ -1,4 +1,4 @@
 import numpy as np
-a = [2*4 for i in range(6)]
-a = np.reshape(a, (2, 3))
-print(a)
+b = np.load('LSTM.npz')['arr_1']
+# ['星期几：1-7' '小时：0-23' '白天温度' '夜间温度' '天气' 'aqi系数' 'aqi level']
+print(b)

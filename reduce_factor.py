@@ -84,7 +84,7 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
 lstm = LSTM(int(dim*0.5), return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
-input_aux = Input(shape=(size, size, 13))
+input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
 aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
@@ -93,7 +93,7 @@ aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
+aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
 aux_dim = 16*4*4
@@ -135,7 +135,7 @@ print(model.summary())
 history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train, demand_aux_train, supply_aux_train],
                     batch_size=8,
-                    epochs=100,
+                    epochs=120,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
                                      [demandY_test, supplyY_test, factor_test, demand_aux_test, supply_aux_test]))
@@ -157,7 +157,7 @@ plt.title('Training and validation RMSE')
 plt.ylim(0, 3)
 plt.xlim(1, epochs[-1])
 plt.grid(1)
-plt.axhline(2.3)
+plt.axhline(2.2)
 plt.legend()
 plt.figure()
 
