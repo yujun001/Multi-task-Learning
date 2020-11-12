@@ -70,20 +70,18 @@ demand_encoder = encoder(input_demand)
 demand_reshape = TimeDistributed(Dropout(0.3))(demand_encoder)
 demand_reshape = TimeDistributed(Flatten())(demand_reshape)
 demand_reshape = Reshape((timestep, dim))(demand_reshape)
-demand_attention = attention_3d_block(demand_reshape)
-demand_lstm = LSTM(int(dim), return_sequences=1, input_shape=(timestep, dim))(demand_attention)
+
 
 input_supply = Input(shape=(None, size, size, 1))
 supply_encoder = encoder(input_supply)
 supply_reshape = TimeDistributed(Dropout(0.3))(supply_encoder)
 supply_reshape = TimeDistributed(Flatten())(supply_reshape)
 supply_reshape = Reshape((timestep, dim))(supply_reshape)
-supply_attention = attention_3d_block(supply_reshape)
-supply_lstm = LSTM(int(dim), return_sequences=1, input_shape=(timestep, dim))(supply_attention)
 
 
-combine_demand_supply = concatenate([demand_lstm, supply_lstm])
-#attention = attention_3d_block(combine_demand_supply)
+
+combine_demand_supply = concatenate([demand_reshape, supply_reshape])
+attention = attention_3d_block(combine_demand_supply)
 lstm = LSTM(int(dim*2), return_sequences=0, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 input_aux = Input(shape=(size, size, 12))

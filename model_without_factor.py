@@ -25,7 +25,7 @@ def decoder(inputs, name):
     attention = Flatten()(attention)
     attention = Dense(dim * 2)(attention)
     decode = Dense(dim)(attention)
-    decode = Dropout(0.3)(decode)
+#    decode = Dropout(0.3)(decode)
     decode = Reshape((4, 4, 16))(decode)
     decode = UpSampling2D((2, 2))(decode)
     decode = Conv2D(8, (3, 3), padding='same')(decode)
