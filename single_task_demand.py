@@ -77,7 +77,7 @@ supply_encoder = encoder(input_supply)
 supply_reshape = TimeDistributed(Dropout(0.3))(supply_encoder)
 supply_reshape = TimeDistributed(Flatten())(supply_reshape)
 supply_reshape = Reshape((timestep, dim))(supply_reshape)
-
+"""
 demand_decoder = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(demand_encoder)
 demand_decoder = TimeDistributed(UpSampling2D((2, 2)))(demand_decoder)
 demand_decoder = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(demand_decoder)
@@ -89,11 +89,11 @@ supply_decoder = TimeDistributed(UpSampling2D((2, 2)))(supply_decoder)
 supply_decoder = TimeDistributed(Conv2D(8, (3, 3), padding='same', activation='relu'))(supply_decoder)
 supply_decoder = TimeDistributed(UpSampling2D((2, 2)))(supply_decoder)
 supply_decoder = TimeDistributed(Conv2D(1, (3, 3), padding='same', activation='relu'))(supply_decoder)
-
+"""
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
 lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
-input_aux = Input(shape=(size, size, 13))
+input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
 aux_encode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
@@ -102,7 +102,7 @@ aux_decode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
+aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
 aux_dim = 32*4*4
@@ -136,22 +136,22 @@ supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
 """
 model = Model(inputs=[input_demand, input_supply, input_aux],
-              outputs=[demand_predict, aux_decode, aux_demand_predict, demand_decoder, supply_decoder])
+              outputs=[demand_predict, aux_decode, aux_demand_predict])
 model.compile(loss='mse',
               optimizer='adam',
               metrics=[rmse],
-              loss_weights=[1, 2, 2, 0.25, 0.25])
+              loss_weights=[1, 2, 2])
 
 print(model.summary())
 #plot_model(model, to_file='model.png')
 
 history = model.fit([demandX_train, supplyX_train, factor_train],
-                    [demandY_train, factor_train, demand_aux_train, demandX_train, supplyX_train],
+                    [demandY_train, factor_train, demand_aux_train],
                     batch_size=8,
                     epochs=100,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
-                                     [demandY_test, factor_test, demand_aux_test, demandX_test, supplyX_test]))
+                                     [demandY_test, factor_test, demand_aux_test]))
 
 demand_rmse = history.history['demand_output_rmse']
 val_demand_rmse = history.history['val_demand_output_rmse']

@@ -141,7 +141,7 @@ history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train, demand_aux_train, supply_aux_train],
                     batch_size=8,
                     epochs=100,
-                    verbose=2,
+                    verbose=1,
                     validation_data=([demandX_test, supplyX_test, factor_test],
                                      [demandY_test, supplyY_test, factor_test, demand_aux_test, supply_aux_test]))
 
