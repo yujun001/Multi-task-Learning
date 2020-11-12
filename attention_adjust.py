@@ -80,50 +80,43 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 
 
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
-lstm = LSTM(int(dim*0.5), return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
-
-aux_dim = 16*4*4
+attention = attention_3d_block(combine_demand_supply)
+lstm = LSTM(int(dim), return_sequences=0, input_shape=(timestep, dim * 2))(attention)
 
 input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
 aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
-aux_hid = Reshape((aux_dim,))(aux_encode)
-aux_hid = Dense(aux_dim)(aux_hid)
-aux_decode = Reshape((4, 4, 16))(aux_hid)
-aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_decode)
+aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
+aux_dim = 16*4*4
 
+aux = Reshape((aux_dim,))(aux_encode)
 
-#aux = Reshape((aux_dim,))(aux_encode)
-
-aux_demand = Dense(aux_dim)(aux_hid)
+aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
-aux_supply = Dense(aux_dim)(aux_hid)
+aux_supply = Dense(aux_dim)(aux)
 aux_supply = Dense(dim)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
 
-demand_attention = attention_3d_block(lstm)
-demand_attention = Flatten()(demand_attention)
-#demand_attention = Dense(dim * 2)(demand_attention)
-demand_combine = concatenate([demand_attention, aux_demand])
+
+demand_combine = Dense(dim * 2)(lstm)
+demand_combine = concatenate([demand_combine, aux_demand])
 demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
 
-supply_attention = attention_3d_block(lstm)
-supply_attention = Flatten()(supply_attention)
-#supply_attention = Dense(dim * 2)(supply_attention)
-supply_combine = concatenate([supply_attention, aux_supply])
+supply_combine = Dense(dim * 2)(lstm)
+supply_combine = concatenate([supply_combine, aux_supply])
 supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
 
@@ -140,7 +133,7 @@ plot_model(model, to_file='model.png')
 history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train, demand_aux_train, supply_aux_train],
                     batch_size=8,
-                    epochs=100,
+                    epochs=120,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
                                      [demandY_test, supplyY_test, factor_test, demand_aux_test, supply_aux_test]))
