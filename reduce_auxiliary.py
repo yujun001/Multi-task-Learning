@@ -126,9 +126,9 @@ supply_predict = main_task(supply_combine, 'supply')
 model = Model(inputs=[input_demand, input_supply, input_aux],
               outputs=[demand_predict, supply_predict, aux_decode])
 model.compile(loss='mse',
-              optimizer='adam',
+              optimizer='rmsprop',
               metrics=[rmse],
-              loss_weights=[1, 1, 10, 20, 20])
+              loss_weights=[1, 1, 1])
 
 print(model.summary())
 # plot_model(model, to_file='model.png')
@@ -136,7 +136,7 @@ print(model.summary())
 history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train],
                     batch_size=8,
-                    epochs=120,
+                    epochs=80,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
                                      [demandY_test, supplyY_test, factor_test]))

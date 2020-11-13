@@ -6,25 +6,25 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras import backend as K
 import matplotlib.pyplot as plt
 
-from tensorflow.keras.utils import plot_model
+
+# from keras.utils import plot_model
 
 
 def rmse(y_true, y_pred):
     return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
-
+"""
 def attention_3d_block(inputs):
     a = Permute((2, 1))(inputs)
     a = Dense(3, activation='softmax')(a)
     a_probs = Permute((2, 1))(a)
     output_attention_mul = Multiply()([inputs, a_probs])
     return output_attention_mul
-
+"""
 
 def main_task(inputs, name):
     decode = Dense(dim)(inputs)
     decode = Reshape((4, 4, 16))(decode)
-    decode = Conv2D(16, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
     decode = Conv2D(8, (3, 3), padding='same')(decode)
     decode = UpSampling2D((2, 2))(decode)
@@ -37,14 +37,15 @@ def encoder(inputs):
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
     encode = TimeDistributed(Conv2D(16, (3, 3), padding='same', activation='relu'))(encode)
     encode = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(encode)
+    encode = Dropout(0.3)(encode)
     return encode
 
 
 def aux_task(inputs, name):
     aux_predict = Reshape((4, 4, 16))(inputs)
-    aux_predict = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_predict)
+    aux_predict = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_predict)
     aux_predict = UpSampling2D((2, 2))(aux_predict)
-    aux_predict = Conv2D(4, (3, 3), padding='same', activation='relu')(aux_predict)
+    aux_predict = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_predict)
     aux_predict = UpSampling2D((2, 2))(aux_predict)
     aux_predict = Conv2D(1, (3, 3), padding='same', activation='relu', name=name+'_auxiliary')(aux_predict)
     return aux_predict
@@ -70,56 +71,55 @@ demand_encoder = encoder(input_demand)
 demand_reshape = TimeDistributed(Dropout(0.3))(demand_encoder)
 demand_reshape = TimeDistributed(Flatten())(demand_reshape)
 demand_reshape = Reshape((timestep, dim))(demand_reshape)
-demand_attention = attention_3d_block(demand_reshape)
-demand_lstm = LSTM(int(dim), return_sequences=1, input_shape=(timestep, dim))(demand_attention)
 
 input_supply = Input(shape=(None, size, size, 1))
 supply_encoder = encoder(input_supply)
 supply_reshape = TimeDistributed(Dropout(0.3))(supply_encoder)
 supply_reshape = TimeDistributed(Flatten())(supply_reshape)
 supply_reshape = Reshape((timestep, dim))(supply_reshape)
-supply_attention = attention_3d_block(supply_reshape)
-supply_lstm = LSTM(int(dim), return_sequences=1, input_shape=(timestep, dim))(supply_attention)
 
 
-combine_demand_supply = concatenate([demand_lstm, supply_lstm])
-#attention = attention_3d_block(combine_demand_supply)
-lstm = LSTM(int(dim*2), return_sequences=0, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
-input_aux = Input(shape=(size, size, 12))
-aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
+combine_demand_supply = concatenate([demand_reshape, supply_reshape])
+lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
+
+input_aux = Input(shape=(size, size, 13))
+aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
-aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
+aux_encode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
-aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_encode)
+aux_decode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(8, (3, 3), padding='same', activation='relu')(aux_decode)
+aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
+aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
-aux_dim = 16*4*4
-
+aux_dim = 32*4*4
 aux = Reshape((aux_dim,))(aux_encode)
 
 aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
+aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
 aux_supply = Dense(aux_dim)(aux)
 aux_supply = Dense(dim)(aux_supply)
+aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
 
-
-demand_combine = Dense(dim * 2)(lstm)
-demand_combine = concatenate([demand_combine, aux_demand])
+#demand_attention = attention_3d_block(lstm)
+demand_attention = Flatten()(lstm)
+demand_attention = Dense(dim * 2)(demand_attention)
+demand_combine = concatenate([demand_attention, aux_demand])
 demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
-
-supply_combine = Dense(dim * 2)(lstm)
-supply_combine = concatenate([supply_combine, aux_supply])
+#supply_attention = attention_3d_block(lstm)
+supply_attention = Flatten()(lstm)
+supply_attention = Dense(dim * 2)(supply_attention)
+supply_combine = concatenate([supply_attention, aux_supply])
 supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
 
@@ -131,12 +131,12 @@ model.compile(loss='mse',
               loss_weights=[1, 1, 10, 20, 20])
 
 print(model.summary())
-plot_model(model, to_file='model.png')
+# plot_model(model, to_file='model.png')
 
 history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train, demand_aux_train, supply_aux_train],
                     batch_size=8,
-                    epochs=120,
+                    epochs=100,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
                                      [demandY_test, supplyY_test, factor_test, demand_aux_test, supply_aux_test]))
@@ -155,10 +155,10 @@ plt.plot(epochs, val_demand_rmse, 'b', label='Demand Validation RMSE')
 plt.plot(epochs, supply_rmse, 'ro', label='Supply Training RMSE')
 plt.plot(epochs, val_supply_rmse, 'r', label='Supply Validation RMSE')
 plt.title('Training and validation RMSE')
-plt.ylim(0, 3)
+plt.ylim(1, 3)
 plt.xlim(1, epochs[-1])
 plt.grid(1)
-plt.axhline(2.2)
+plt.axhline(2.3)
 plt.legend()
 plt.figure()
 
