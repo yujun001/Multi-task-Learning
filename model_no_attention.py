@@ -113,14 +113,14 @@ aux_supply_predict = aux_task(aux_supply, 'supply')
 demand_attention = Flatten()(lstm)
 #demand_attention = Dense(dim * 2)(demand_attention)
 demand_combine = concatenate([demand_attention, aux_demand])
-demand_combine = Dense(dim * 2)(demand_combine)
+#demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
 #supply_attention = attention_3d_block(lstm)
 supply_attention = Flatten()(lstm)
 #supply_attention = Dense(dim * 2)(supply_attention)
 supply_combine = concatenate([supply_attention, aux_supply])
-supply_combine = Dense(dim * 2)(supply_combine)
+#supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
 
 model = Model(inputs=[input_demand, input_supply, input_aux],
@@ -128,7 +128,7 @@ model = Model(inputs=[input_demand, input_supply, input_aux],
 model.compile(loss='mse',
               optimizer='adam',
               metrics=[rmse],
-              loss_weights=[1, 1, 10, 20, 20])
+              loss_weights=[1, 1, 1, 1, 1])
 
 print(model.summary())
 # plot_model(model, to_file='model.png')
@@ -155,7 +155,7 @@ plt.plot(epochs, val_demand_rmse, 'b', label='Demand Validation RMSE')
 plt.plot(epochs, supply_rmse, 'ro', label='Supply Training RMSE')
 plt.plot(epochs, val_supply_rmse, 'r', label='Supply Validation RMSE')
 plt.title('Training and validation RMSE')
-plt.ylim(1, 3)
+plt.ylim(0, 3)
 plt.xlim(1, epochs[-1])
 plt.grid(1)
 plt.axhline(2.3)
