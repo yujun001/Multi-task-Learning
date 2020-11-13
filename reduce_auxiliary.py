@@ -81,7 +81,7 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 
 
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
-lstm = LSTM(int(dim*0.5), return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
+lstm = LSTM(int(dim), return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(8, (3, 3), padding='same', activation='relu')(input_aux)
@@ -111,14 +111,14 @@ aux_supply = Dense(dim)(aux_supply)
 
 demand_attention = attention_3d_block(lstm)
 demand_attention = Flatten()(demand_attention)
-demand_attention = Dense(dim * 2)(demand_attention)
+demand_attention = Dense(dim)(demand_attention)
 demand_combine = concatenate([demand_attention, aux_demand])
 demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
 supply_attention = attention_3d_block(lstm)
 supply_attention = Flatten()(supply_attention)
-supply_attention = Dense(dim * 2)(supply_attention)
+supply_attention = Dense(dim)(supply_attention)
 supply_combine = concatenate([supply_attention, aux_supply])
 supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
@@ -126,7 +126,7 @@ supply_predict = main_task(supply_combine, 'supply')
 model = Model(inputs=[input_demand, input_supply, input_aux],
               outputs=[demand_predict, supply_predict, aux_decode])
 model.compile(loss='mse',
-              optimizer='rmsprop',
+              optimizer='adam',
               metrics=[rmse],
               loss_weights=[1, 1, 1])
 
@@ -135,7 +135,7 @@ print(model.summary())
 
 history = model.fit([demandX_train, supplyX_train, factor_train],
                     [demandY_train, supplyY_train, factor_train],
-                    batch_size=8,
+                    batch_size=16,
                     epochs=80,
                     verbose=2,
                     validation_data=([demandX_test, supplyX_test, factor_test],
