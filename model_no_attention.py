@@ -100,12 +100,12 @@ aux = Reshape((aux_dim,))(aux_encode)
 
 aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
-aux_demand = Dropout(0.5)(aux_demand)
+#aux_demand = Dropout(0.5)(aux_demand)
 aux_demand_predict = aux_task(aux_demand, 'demand')
 
 aux_supply = Dense(aux_dim)(aux)
 aux_supply = Dense(dim)(aux_supply)
-aux_supply = Dropout(0.5)(aux_supply)
+#aux_supply = Dropout(0.5)(aux_supply)
 aux_supply_predict = aux_task(aux_supply, 'supply')
 
 
