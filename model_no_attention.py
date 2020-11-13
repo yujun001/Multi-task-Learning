@@ -83,7 +83,7 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
 lstm = LSTM(dim, return_sequences=1, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
-input_aux = Input(shape=(size, size, 13))
+input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(input_aux)
 aux_encode = MaxPooling2D(pool_size=(2, 2))(aux_encode)
 aux_encode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
@@ -92,7 +92,7 @@ aux_decode = Conv2D(32, (3, 3), padding='same', activation='relu')(aux_encode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
 aux_decode = Conv2D(16, (3, 3), padding='same', activation='relu')(aux_decode)
 aux_decode = UpSampling2D((2, 2))(aux_decode)
-aux_decode = Conv2D(13, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
+aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoencoder')(aux_decode)
 
 
 aux_dim = 32*4*4
