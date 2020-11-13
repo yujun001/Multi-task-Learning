@@ -81,7 +81,7 @@ supply_reshape = Reshape((timestep, dim))(supply_reshape)
 
 
 combine_demand_supply = concatenate([demand_reshape, supply_reshape])
-lstm = LSTM(dim, return_sequences=0, input_shape=(timestep, dim * 2))(combine_demand_supply)
+lstm = LSTM(dim*0.5, return_sequences=0, input_shape=(timestep, dim * 2))(combine_demand_supply)
 
 input_aux = Input(shape=(size, size, 12))
 aux_encode = Conv2D(16, (3, 3), padding='same', activation='relu')(input_aux)
@@ -98,6 +98,7 @@ aux_decode = Conv2D(12, (3, 3), padding='same', activation='relu', name='autoenc
 aux_dim = 32*4*4
 aux = Reshape((aux_dim,))(aux_encode)
 
+
 aux_demand = Dense(aux_dim)(aux)
 aux_demand = Dense(dim)(aux_demand)
 #aux_demand = Dropout(0.5)(aux_demand)
@@ -111,14 +112,14 @@ aux_supply_predict = aux_task(aux_supply, 'supply')
 
 #demand_attention = attention_3d_block(lstm)
 demand_attention = Flatten()(lstm)
-#demand_attention = Dense(dim * 2)(demand_attention)
+demand_attention = Dense(dim)(demand_attention)
 demand_combine = concatenate([demand_attention, aux_demand])
 #demand_combine = Dense(dim * 2)(demand_combine)
 demand_predict = main_task(demand_combine, 'demand')
 
 #supply_attention = attention_3d_block(lstm)
 supply_attention = Flatten()(lstm)
-#supply_attention = Dense(dim * 2)(supply_attention)
+supply_attention = Dense(dim)(supply_attention)
 supply_combine = concatenate([supply_attention, aux_supply])
 #supply_combine = Dense(dim * 2)(supply_combine)
 supply_predict = main_task(supply_combine, 'supply')
